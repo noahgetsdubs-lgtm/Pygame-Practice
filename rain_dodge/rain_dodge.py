@@ -17,21 +17,43 @@ POINT_WIDTH = 20
 POINT_HEIGHT = 30
 POINT_VEL = 5
 FONT = pygame.font.SysFont("comicsans", 30) #Font, size
+PLAY_AGAIN_BUTTON_WIDTH = 400
+PLAY_AGAIN_BUTTON_HEIGHT = 100
 
 pygame.display.set_caption("Space Dodge") #Name of the Window
 
-def draw(player, elapsed_time, stars):
+def draw(player, elapsed_time, stars, points, score):
     WIN.blit(BG, (0, 0)) #blit takes an image and a starting coordinate and puts it on the window
 
     time_text = FONT.render(f"Time: {round(elapsed_time)}s", 1, "white") #String, antialiasing, color
     WIN.blit(time_text, (10, 10))
 
+    score_text = FONT.render(f"Score: {score}", 1, "white")
+    WIN.blit(score_text, (990 - score_text.get_width(), 10))
+
     pygame.draw.rect(WIN, "white", player) #Where to draw it, what color (string or RGB), what rectangle
 
     for star in stars:
         pygame.draw.rect(WIN, "red", star)
+    
+    for point in points:
+        pygame.draw.rect(WIN, "gold", point)
 
     pygame.display.update() #updates the screen and applys the background
+
+def reset_game(stars, points, hit, score, player, start_time):
+    for star in stars:
+        stars.remove(star)
+    for point in points:
+        points.remove(point)
+    hit = False
+    player.x = 200
+    start_time = time.time
+    
+        
+
+
+
 
 def main():
     run = True
@@ -48,11 +70,13 @@ def main():
     hit = False
     score = 0
 
+
     while run:
-        tick += clock.tick(60) #How many times the while loop runs per second needs the clock object to be made
-        star_count += tick
-        point_count += tick
+        dt = clock.tick(60) #How many times the while loop runs per second needs the clock object to be made
+        star_count += dt
+        point_count += dt
         elapsed_time = time.time() - start_time
+        buttons = pygame.mouse.get_pressed()
 
         if star_count > star_add_increment:
             for _ in range (3):
@@ -70,7 +94,6 @@ def main():
             point_add_increment = max(200, point_add_increment - 50)
             point_count = 0
         
-        #if score_count =
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -95,17 +118,43 @@ def main():
         for point in points[:]:
             point.y += POINT_VEL
             if point.y > SCREEN_HEIGHT:
+                points.remove(point)
+            elif point.y + point.height >= player.y and point.colliderect(player):
+                points.remove(point)
+                score += 1
 
-        if hit:
+        while hit:
             lost_text = FONT.render("You Lost!", 1, "white")
-            WIN.blit(lost_text, (SCREEN_WIDTH/2 - lost_text.get_width()/2, SCREEN_HEIGHT/2 - lost_text.get_height()/2))
+            WIN.blit(lost_text, (SCREEN_WIDTH/2 - lost_text.get_width()/2, SCREEN_HEIGHT/5 - lost_text.get_height()/2))
+            play_again_text = FONT.render("Play Again?", 1, "White")
+            play_again_button = pygame.Rect(SCREEN_WIDTH/2 - PLAY_AGAIN_BUTTON_WIDTH/2, SCREEN_HEIGHT/1.5 - play_again_text.get_height()/2 - 50, PLAY_AGAIN_BUTTON_WIDTH, PLAY_AGAIN_BUTTON_HEIGHT)
+            pygame.draw.rect(WIN, "blue", play_again_button)
+            WIN.blit(play_again_text, (SCREEN_WIDTH/2 - play_again_text.get_width()/2, SCREEN_HEIGHT/1.5 - play_again_text.get_height()/2 - 50 + play_again_text.get_height()/2))
             pygame.display.update()
-            pygame.time.delay(4000)
-            break
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        if play_again_button.collidepoint(event.pos):
+                             hit = False
+                             score = 0
+                             stars.clear()
+                             points.clear()
+                             player.x = 200
+                             player.y = SCREEN_HEIGHT - PLAYER_HEIGHT
+                             start_time = time.time()
+                             point_add_increment = 2000
+                             star_add_increment = 2000
+                             star_count = 0
+                             break
+                if event.type == pygame.QUIT:
+                    run = False
+                    break
+                            
 
 
 
-        draw(player, elapsed_time, stars, points)
+
+        draw(player, elapsed_time, stars, points, score)
 
     pygame.quit
 
